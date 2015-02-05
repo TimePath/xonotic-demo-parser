@@ -1,0 +1,56 @@
+package com.timepath.xonotic
+
+object SVC {
+  val BAD = 0
+  val NOP = 1
+  val DISCONNECT = 2
+  val UPDATESTAT = 3
+  val VERSION = 4
+  val SETVIEW = 5
+  val SOUND = 6
+  val TIME = 7
+  val PRINT = 8
+  val STUFFTEXT = 9
+  val SETANGLE = 10
+  val SERVERINFO = 11
+  val LIGHTSTYLE = 12
+  val UPDATENAME = 13
+  val UPDATEFRAGS = 14
+  val CLIENTDATA = 15
+  val STOPSOUND = 16
+  val UPDATECOLORS = 17
+  val PARTICLE = 18
+  val DAMAGE = 19
+  val SPAWNSTATIC = 20
+  val SPAWNBINARY = 21
+  val SPAWNBASELINE = 22
+  val TEMP_ENTITY = 23
+  val SETPAUSE = 24
+  val SIGNONNUM = 25
+  val CENTERPRINT = 26
+  val KILLEDMONSTER = 27
+  val FOUNDSECRET = 28
+  val SPAWNSTATICSOUND = 29
+  val INTERMISSION = 30
+  val FINALE = 31
+  val CDTRACK = 32
+  val SELLSCREEN = 33
+  val CUTSCENE = 34
+  val SHOWLMP = 35
+  val HIDELMP = 36
+  val SKYBOX = 37
+  val DOWNLOADDATA = 50
+  val UPDATESTATUBYTE = 51
+  val EFFECT = 52
+  val EFFECT2 = 53
+  val SOUND2 = 54
+  val PRECACHE = 54
+  val SPAWNBASELINE2 = 55
+  val SPAWNSTATIC2 = 56
+  val ENTITIES = 57
+  val CSQCENTITIES = 58
+  val SPAWNSTATICSOUND2 = 59
+  val TRAILPARTICLES = 60
+  val POINTPARTICLES = 61
+  val POINTPARTICLES1 = 62
+}

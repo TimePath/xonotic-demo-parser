@@ -1,0 +1,13 @@
+apply plugin: 'scala'
+
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.scala-lang:scala-library:2.11.1'
+    compile 'commons-io:commons-io:2.4'
+}
