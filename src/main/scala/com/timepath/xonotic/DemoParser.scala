@@ -1,7 +1,13 @@
 package com.timepath.xonotic
 
-import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
+import com.timepath.quakec.vm.{BuiltinHandler, Builtin, Program}
+import com.timepath.quakec.vm.util.{RandomAccessBuffer, ProgramDataReader}
 
+import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
+import java.nio.ByteBuffer
+import java.util
+
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.language.implicitConversions
 import scala.util.control.Breaks.{break, breakable}
@@ -9,6 +15,46 @@ import scala.util.control.Breaks.{break, breakable}
 class DemoParser {
 
   implicit def toBoolean(e: Int): Boolean = e != 0
+
+  def SBuiltin(name: String,
+               parameterTypes: Array[Class[_]] = Array(),
+               varargsType: Class[_] = null,
+               callback: (List[_]) => _) = {
+    new Builtin(name, parameterTypes, if (varargsType == null) null else varargsType, new BuiltinHandler {
+      override def call(args: util.List[_]): AnyRef = callback(args.asScala.toList).asInstanceOf[AnyRef]
+    })
+  }
+
+  var progs: ByteBuffer = null
+  var vm: Program = null
+
+  def loadProgram(in: DemoStream): Unit = {
+    progs.position(0)
+    val buffer = new RandomAccessBuffer(progs)
+    val reader = new ProgramDataReader(buffer)
+    vm = new Program(reader.read())
+    val f: util.Map[Integer, Builtin] = vm.getBuiltins
+    f.clear()
+    f.put(10, SBuiltin("error", Array(classOf[String]), callback = (args: List[_]) => {
+      println(args(0))
+    }))
+    f.put(330, SBuiltin("getstatf", callback = (args: List[_]) => {
+      0
+    }))
+    f.put(360, SBuiltin("ReadByte", callback = (args: List[_]) => {
+      in.read8
+    }))
+    f.put(512, SBuiltin("num_for_edict", callback = (args: List[_]) => {
+      0
+    }))
+    f.put(627, SBuiltin("sprintf", Array(classOf[String]), callback = (args: List[_]) => {
+      val s = args(0)
+      if (s == null) "" else s.toString
+    }))
+    f.put(339, SBuiltin("print", Array(classOf[String]), callback = (args: List[_]) => {
+      println(args(0))
+    }))
+  }
 
   implicit class DemoStream(input: InputStream) extends CStream(input) {
     def readCoord = readFloat()
@@ -235,7 +281,7 @@ class DemoParser {
     }
   }
 
-  class Packet(val clientToServer: Boolean, val viewAngles: Vector, val data: Array[Byte]) {
+  class Packet(val demo: DemoStream, val clientToServer: Boolean, val viewAngles: Vector, val data: Array[Byte]) {
     def parse(): Unit = {
       val b = new CStream(new ByteArrayInputStream(data))
       val cmds = mutable.MutableList[Int]()
@@ -302,6 +348,17 @@ class DemoParser {
 
           case SVC.STUFFTEXT =>
             val text = b.readString()
+            if (progs == null) {
+              val toks = text.trim.split(" ")
+              toks(0) match {
+                case "cl_downloadbegin" =>
+                  if (toks(2) == "csprogs.dat")
+                    progs = ByteBuffer.allocate(toks(1).toInt)
+                case _ =>
+              }
+            } else if (vm == null) {
+              loadProgram(demo)
+            }
             s"svc_stufftext $text"
 
           case SVC.DAMAGE =>
@@ -454,13 +511,32 @@ class DemoParser {
             b.readEntityState()
             "svc_entities"
 
-//          case SVC.CSQCENTITIES =>
+          case SVC.CSQCENTITIES =>
+            vm.exec("CSQC_Ent_Update")
+            /*
+            while 1:
+              entnum = b.read_int16()
+              if not entnum:
+                  break
+              remove = bool(entnum & 0x8000)
+              realentnum = entnum & 0x7FFF
+              # self = realentnum
+              if remove:
+                  CSQC_Ent_Remove(b)
+              else:
+                  new = False
+                  if 1:  # new entity
+                      CSQC_Ent_Spawn(b)
+                      new = True
+                  CSQC_Ent_Update(b, new)
+             */
 
           case SVC.DOWNLOADDATA =>
             val start = b.read32
             val size = b.readu16
             val data = new Array[Byte](size)
             b.readFully(data)
+            progs.put(data)
             s"svc_downloaddata $start $size"
 
           case SVC.TRAILPARTICLES =>
@@ -504,7 +580,7 @@ class DemoParser {
       val viewangles = Vector(b.readFloat(), b.readFloat(), b.readFloat())
       val data = new Array[Byte](size)
       b.readFully(data)
-      val p = new Packet(clientToServer, viewangles, data)
+      val p = new Packet(b, clientToServer, viewangles, data)
       l += p
       p.parse()
     }

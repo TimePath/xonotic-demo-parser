@@ -7,7 +7,14 @@ repositories {
     mavenCentral()
 }
 
+ext.versions = [
+        scala               : '2.11.1',
+        kotlin              : '0.10.195',
+]
+
 dependencies {
-    compile 'org.scala-lang:scala-library:2.11.1'
+    compile "org.scala-lang:scala-library:${versions.scala}"
     compile 'commons-io:commons-io:2.4'
+    compile "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}"
+    compile 'com.timepath:jqcc:0.1-SNAPSHOT'
 }
