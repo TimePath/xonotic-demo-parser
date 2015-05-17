@@ -1,7 +1,7 @@
 package com.timepath.xonotic
 
-import com.timepath.quakec.vm.{BuiltinHandler, Builtin, Program}
-import com.timepath.quakec.vm.util.{RandomAccessBuffer, ProgramDataReader}
+import com.timepath.q1vm._
+import com.timepath.q1vm.util._
 
 import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
 import java.nio.ByteBuffer
@@ -20,8 +20,11 @@ class DemoParser {
                parameterTypes: Array[Class[_]] = Array(),
                varargsType: Class[_] = null,
                callback: (List[_]) => _) = {
-    new Builtin(name, parameterTypes, if (varargsType == null) null else varargsType, new BuiltinHandler {
-      override def call(args: util.List[_]): AnyRef = callback(args.asScala.toList).asInstanceOf[AnyRef]
+    new Builtin(name, parameterTypes, if (varargsType == null) null else varargsType, new Builtin.Handler {
+      override def call(args: util.List[_]): AnyRef = {
+        val ret = callback(args.asScala.toList).asInstanceOf[AnyRef]
+        if (ret.isInstanceOf[Unit]) kotlin.Unit.INSTANCE$ else ret
+      }
     })
   }
 
@@ -30,7 +33,7 @@ class DemoParser {
 
   def loadProgram(in: DemoStream): Unit = {
     progs.position(0)
-    val buffer = new RandomAccessBuffer(progs)
+    val buffer = new IOWrapper.Buffer(progs)
     val reader = new ProgramDataReader(buffer)
     vm = new Program(reader.read())
     val f: util.Map[Integer, Builtin] = vm.getBuiltins
